@@ -48,7 +48,6 @@ class BitmapPage {
   [[maybe_unused]] uint32_t page_allocated_;
   [[maybe_unused]] uint32_t next_free_page_;
   [[maybe_unused]] unsigned char bytes[MAX_CHARS];
-
 };
 
 #endif  // MINISQL_BITMAP_PAGE_H

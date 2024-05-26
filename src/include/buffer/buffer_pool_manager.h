@@ -45,9 +45,9 @@ class BufferPoolManager {
    */
   void DeallocatePage(page_id_t page_id);
 
-   bool find_victim_page(frame_id_t *frame_id);
-   void update_page(Page *page, page_id_t new_page_id, frame_id_t new_frame_id);
-   
+  bool find_victim_page(frame_id_t *frame_id);
+  void update_page(Page *page, page_id_t new_page_id, frame_id_t new_frame_id);
+
 
   frame_id_t TryToFindFreePage();
 

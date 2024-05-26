@@ -37,14 +37,14 @@ class LRUReplacer : public Replacer {
 
   size_t Size() override;
 
-private:
- std::mutex mutx_;                // lock for threads
+ private:
+  std::mutex mutx_;                // lock for threads
   std::list<frame_id_t> LRU_list;  // doubly-linked list for storage of frame_id_t -> implementation of least-recently
                                    // used (LRU algorithm)
   std::unordered_map<frame_id_t, std::list<frame_id_t>::iterator> LRU_hash;
- 
+
   size_t max_size;
-  
+
 };
 
 #endif  // MINISQL_LRU_REPLACER_H
