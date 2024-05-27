@@ -9,10 +9,16 @@ class TableHeap;
 
 class TableIterator {
 public:
+
+  TableIterator(const TableIterator &other) //复制构造函数
+  : table_heap_(other.table_heap_),
+    rid_(other.rid_),
+    txn_(other.txn_),
+    row_(other.row_){} //拷贝所有的成员变量到新的对象
  // you may define your own constructor based on your member variables
  explicit TableIterator(TableHeap *table_heap, RowId rid, Txn *txn);
 
- explicit TableIterator(const TableIterator &other);
+
 
   virtual ~TableIterator();
 
@@ -31,7 +37,11 @@ public:
   TableIterator operator++(int);
 
 private:
-  // add your own private member variables here
+  TableHeap *table_heap_;
+  RowId rid_;
+  Txn *txn_;
+  Row row_;
+
 };
 
 #endif  // MINISQL_TABLE_ITERATOR_H

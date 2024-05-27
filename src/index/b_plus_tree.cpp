@@ -170,6 +170,7 @@ void BPlusTree::InsertIntoParent(BPlusTreePage *old_node, GenericKey *key, BPlus
         auto* new_root_page = reinterpret_cast<BPlusTreeInternalPage*>(new_page->GetData());  //新的根节点只能为internal page
         //初始化
         new_root_page->Init(new_root_page_id, INVALID_PAGE_ID, old_node->GetKeySize(), internal_max_size_);
+        new_root_page->PopulateNewRoot(old_node->GetPageId(), key, new_node->GetPageId());
         old_node->SetParentPageId(new_root_page_id);
         new_node->SetParentPageId(new_root_page_id);
         root_page_id_ = new_root_page_id;
@@ -305,17 +306,18 @@ void BPlusTree::Redistribute(LeafPage *neighbor_node, LeafPage *node, int index)
     page_id_t parent_id = node->GetParentPageId(), neighbor_id = neighbor_node->GetPageId(), node_id = node->GetPageId();
     Page* parent = buffer_pool_manager_->FetchPage(parent_id);
     auto* parent_page = reinterpret_cast<BPlusTreeInternalPage*>(parent->GetData());
-    if(index == 0){  //move sibling page's first key & value pair into end of input "node"
+    if(index == 0){  
         neighbor_node->MoveFirstToEndOf(node);
-        int neighbor_index = parent_page->ValueIndex(neighbor_id);  
-        parent_page->SetKeyAt(neighbor_index, neighbor_node->KeyAt(0));  //父节点键值对更新
-    }else{  //move sibling page's last key & value pair into head of input * "node"
+        int node_index = parent_page->ValueIndex(neighbor_id);
+        parent_page->SetKeyAt(node_index, neighbor_node->KeyAt(0));
+    }else{
         neighbor_node->MoveLastToFrontOf(node);
         int node_index = parent_page->ValueIndex(node_id);
-        parent_page->SetKeyAt(node_index, node->KeyAt(0));  //父节点键值对更新
+        parent_page->SetKeyAt(node_index, node->KeyAt(0));
     }
     buffer_pool_manager_->UnpinPage(parent_id, true);
 }
+
 void BPlusTree::Redistribute(InternalPage *neighbor_node, InternalPage *node, int index) {
     page_id_t parent_id = node->GetParentPageId(), neighbor_id = neighbor_node->GetPageId(), node_id = node->GetPageId();
     Page* parent = buffer_pool_manager_->FetchPage(parent_id);

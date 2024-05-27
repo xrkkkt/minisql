@@ -93,6 +93,27 @@ class CatalogManager {
   dberr_t DropTable(const std::string &table_name);
 
   dberr_t DropIndex(const std::string &table_name, const std::string &index_name);
+  
+  //my add
+ dberr_t CreateTableMetadata(const string &table_name, TableSchema *schema, Txn *txn, TableInfo *&table_info,page_id_t &meta_page_id ,table_id_t &table_id) ;
+ dberr_t AddTableToCatalog(const string &table_name, TableSchema *schema, Txn *txn, TableInfo *&table_info,page_id_t &meta_page_id ,table_id_t &table_id) ;
+ dberr_t CreateIndexMetadata(const std::string &table_name, const string &index_name,
+                            const std::vector<std::string> &index_keys, Txn *txn, IndexInfo *&index_info,
+                            const string &index_type,index_id_t &index_id, table_id_t &table_id, page_id_t &meta_page_id);
+  dberr_t AddIndexToCatalog(const std::string &table_name, const string &index_name,
+                          const std::vector<std::string> &index_keys, Txn *txn, IndexInfo *&index_info,
+                          const string &index_type,index_id_t &index_id, table_id_t &table_id, page_id_t &meta_page_id)  ;                        
+
+
+
+
+
+
+
+
+
+  // for convenience
+  CatalogMeta *GetMeta(void);
 
  private:
   dberr_t DropTable(table_id_t table_id);
@@ -118,6 +139,7 @@ class CatalogManager {
   // map for indexes: table_name->index_name->indexes
   std::unordered_map<std::string, std::unordered_map<std::string, index_id_t>> index_names_;
   std::unordered_map<index_id_t, IndexInfo *> indexes_;
+   
 };
 
 #endif  // MINISQL_CATALOG_H
