@@ -67,7 +67,17 @@ class IndexInfo {
     // Step1: init index metadata and table info
     // Step2: mapping index key to key schema
     // Step3: call CreateIndex to create the index
-    ASSERT(false, "Not Implemented yet.");
+
+    //ASSERT(false, "Not Implemented yet.");
+
+
+    // Step1: init index metadata and table info
+    this->meta_data_ = meta_data;
+    this->table_info_ = table_info;
+    // Step2: mapping index key to key schema
+    key_schema_ = Schema::ShallowCopySchema(table_info->GetSchema(), meta_data->key_map_);
+    // Step3: call CreateIndex to create the index
+    index_ = CreateIndex(buffer_pool_manager,"bptree");
   }
 
   inline Index *GetIndex() { return index_; }
@@ -84,6 +94,7 @@ class IndexInfo {
  private:
   IndexMetadata *meta_data_;
   Index *index_;
+  TableInfo *table_info_;
   IndexSchema *key_schema_;
 };
 

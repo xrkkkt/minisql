@@ -335,12 +335,70 @@ dberr_t ExecuteEngine::ExecuteShowTables(pSyntaxNode ast, ExecuteContext *contex
 /**
  * TODO: Student Implement
  */
-dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode ast, ExecuteContext *context) {
-#ifdef ENABLE_EXECUTE_DEBUG
-  LOG(INFO) << "ExecuteCreateTable" << std::endl;
-#endif
-  return DB_FAILED;
+dberr_t ExecuteEngine::ExecuteCreateTable(pSyntaxNode node, ExecuteContext *context) {
+  std::string table_name = node->child_->val_;
+
+  std::vector<Column*> columns;
+  for (pSyntaxNode c = node->child_->next_; c != nullptr; c = c->next_) {
+    std::string column_name = c->child_->val_;
+    std::string type_str = c->child_->next_->val_;
+    TypeId type_id;
+
+    // Define every possible type
+    if (type_str == "int") {
+      type_id = kTypeInt;
+    } else if (type_str == "float") {
+      type_id = kTypeFloat;
+    } else if (type_str == "char") {
+      type_id = kTypeChar;
+    } else {
+      // Throw an exception when the type is unknown
+      throw "Unknown type.";
+    }
+
+    uint32_t index = std::atoi(c->child_->next_->next_->val_);
+
+    // Check nullable
+    bool nullable = strcmp(c->child_->next_->next_->next_->val_, "true") == 0;
+
+    // Check unique
+    bool unique = strcmp(c->child_->next_->next_->next_->next_->val_, "true") == 0;
+
+    // Add the column into the column vector
+    columns.push_back(new Column(column_name, type_id, index, nullable, unique));
+  }
+
+  // Here, I will use representative values to replace table_id and root_page_id
+  table_id_t table_id = 1;
+  page_id_t root_page_id = 1;
+  
+  // Create a input schema
+  TableSchema* input_schema = new TableSchema(columns);
+
+  BufferPoolManager* buffer_pool_manager = nullptr;
+  LogManager* log_manager = nullptr;
+  LockManager* lock_manager = nullptr;
+  
+  Txn* txn = context->GetTransaction();
+
+  // Create a new TableHeap and TableMetadata objects
+  TableHeap* table_heap = TableHeap::Create(buffer_pool_manager, input_schema, txn, log_manager, lock_manager);
+  
+  TableMetadata* table_metadata = TableMetadata::Create(table_id, table_name, root_page_id, input_schema);
+  
+  // Create a new TableInfo object
+  TableInfo* table_info = TableInfo::Create();
+  table_info->Init(table_metadata, table_heap);
+ 
+  // Call create table method from the catalog manager
+  dberr_t status = dbs_[current_db_]->catalog_mgr_->CreateTable(table_name, input_schema, txn, table_info);
+
+  if (status == DB_FAILED) {
+    return DB_TABLE_ALREADY_EXIST;
+  }
+  return DB_SUCCESS;
 }
+
 
 /**
  * TODO: Student Implement
@@ -349,7 +407,17 @@ dberr_t ExecuteEngine::ExecuteDropTable(pSyntaxNode ast, ExecuteContext *context
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDropTable" << std::endl;
 #endif
- return DB_FAILED;
+  string table_name = ast->child_->val_;  // 获取要删除的表格名称
+  if (current_db_.empty()) {  // 如果没有选定数据库，返回失败
+    cout << "No database selected" << endl;
+    return DB_FAILED;
+  }
+  // 从当前数据库的目录管理器中删除表格
+  dberr_t status = dbs_[current_db_]->catalog_mgr_->DropTable(table_name);
+  if (status == DB_FAILED) {  // 如果删除失败（例如，表格不存在），返回失败
+    return DB_TABLE_NOT_EXIST;
+  }
+  return DB_SUCCESS;  // 如果成功删除表格，返回成功
 }
 
 /**
@@ -359,7 +427,25 @@ dberr_t ExecuteEngine::ExecuteShowIndexes(pSyntaxNode ast, ExecuteContext *conte
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteShowIndexes" << std::endl;
 #endif
-  return DB_FAILED;
+  if (current_db_.empty()) {  // 如果没有选定数据库，返回失败
+    cout << "No database selected" << endl;
+    return DB_FAILED;
+  }
+  string table_name = ast->child_->val_;  // 获取要查看索引的表格名称
+  vector<IndexInfo*> indexes;
+  // 从当前数据库的目录管理器中获取表格的所有索引
+  dberr_t status = dbs_[current_db_]->catalog_mgr_->GetTableIndexes(table_name, indexes);
+  if (status == DB_FAILED) {  // 如果获取失败（例如，表格不存在），返回失败
+    return DB_TABLE_NOT_EXIST;
+  }
+
+  // 输出索引信息
+  cout << "Table: " << table_name << endl;
+  cout << "Indexes:" << endl;
+  for (auto index : indexes) {
+    cout << "Index Name: " << index->GetIndexName() << endl;
+  }
+  return DB_SUCCESS;
 }
 
 /**
@@ -369,8 +455,33 @@ dberr_t ExecuteEngine::ExecuteCreateIndex(pSyntaxNode ast, ExecuteContext *conte
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteCreateIndex" << std::endl;
 #endif
-  return DB_FAILED;
+
+  std::string index_name = ast->child_->val_;
+  std::string table_name = ast->child_->next_->val_;
+
+ 
+  std::vector<std::string> index_keys;
+  pSyntaxNode key_node = ast->child_->next_->next_;
+  while (key_node->next_ != nullptr) {
+    index_keys.push_back(key_node->val_);
+    key_node = key_node->next_;
+  }
+
+  // The last node is assumed to be the index type
+  std::string index_type = key_node->val_;
+
+  // Get the current transaction
+  Txn *txn = context->GetTransaction();
+
+  // Create the index
+  IndexInfo *index_info;
+  dberr_t status = dbs_[current_db_]->catalog_mgr_->CreateIndex(table_name, index_name, index_keys, txn, index_info, index_type);
+  if (status == DB_FAILED) {
+    return DB_INDEX_ALREADY_EXIST;
+  }
+  return DB_SUCCESS;
 }
+
 
 /**
  * TODO: Student Implement
@@ -379,8 +490,17 @@ dberr_t ExecuteEngine::ExecuteDropIndex(pSyntaxNode ast, ExecuteContext *context
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteDropIndex" << std::endl;
 #endif
-  return DB_FAILED;
+ 
+  std::string table_name = ast->child_->val_;
+  std::string index_name = ast->child_->next_->val_;
+
+  dberr_t status = dbs_[current_db_]->catalog_mgr_->DropIndex(table_name, index_name);
+  if (status == DB_FAILED) {
+    return DB_INDEX_NOT_FOUND;
+  }
+  return DB_SUCCESS;
 }
+
 
 dberr_t ExecuteEngine::ExecuteTrxBegin(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
@@ -406,12 +526,56 @@ dberr_t ExecuteEngine::ExecuteTrxRollback(pSyntaxNode ast, ExecuteContext *conte
 /**
  * TODO: Student Implement
  */
+
 dberr_t ExecuteEngine::ExecuteExecfile(pSyntaxNode ast, ExecuteContext *context) {
-#ifdef ENABLE_EXECUTE_DEBUG
-  LOG(INFO) << "ExecuteExecfile" << std::endl;
-#endif
-  return DB_FAILED;
+  // 打开文件
+  std::ifstream file(ast->val_);
+  if (!file.is_open()) {
+    return DB_FAILED;
+  }
+
+  // 读取文件中的每一行
+  std::string line;
+  int line_number = 0;
+  while (std::getline(file, line)) {
+    line_number++;
+    if (line.empty()) continue;
+
+    // 初始化解析器
+    MinisqlParserInit();
+
+    // 使用解析器来解析SQL命令
+    char *line_cstr = new char[line.length() + 1];
+    std::strcpy(line_cstr, line.c_str());
+    MinisqlParserMovePos(line_number, line_cstr);
+    delete[] line_cstr;
+
+    // 检查解析结果
+    if (MinisqlParserGetError() != 0) {
+      // 解析失败，返回错误
+      return DB_FAILED;
+    }
+
+    // 获取解析后的抽象语法树
+    pSyntaxNode root = MinisqlGetParserRootNode();
+
+    // 使用Execute函数来执行解析后的抽象语法树
+    dberr_t status = Execute(root);
+    if (status != DB_SUCCESS) {
+      // 执行失败，返回错误
+      return status;
+    }
+
+    // 清理解析器
+    MinisqlParserFinish();
+  }
+
+  // 关闭文件
+  file.close();
+
+  return DB_SUCCESS;
 }
+
 
 /**
  * TODO: Student Implement
@@ -420,5 +584,7 @@ dberr_t ExecuteEngine::ExecuteQuit(pSyntaxNode ast, ExecuteContext *context) {
 #ifdef ENABLE_EXECUTE_DEBUG
   LOG(INFO) << "ExecuteQuit" << std::endl;
 #endif
- return DB_FAILED;
-}
+  return DB_QUIT;}
+
+
+

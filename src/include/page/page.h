@@ -27,7 +27,11 @@ class Page {
   ~Page() = default;
 
   /** @return the actual data contained within this page */
-  inline char *GetData() { return data_; }
+  inline char *GetData() {   
+    //assert(data_ != nullptr, "data_ is nullptr")
+    //std::cout<<"data_:"<<data_<<std::endl;
+    return data_; 
+    }
 
   /** @return the page id of this page */
   inline page_id_t GetPageId() { return page_id_; }

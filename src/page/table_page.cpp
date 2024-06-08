@@ -11,7 +11,38 @@ void TablePage::Init(page_id_t page_id, page_id_t prev_id, LogManager *log_mgr, 
 }
 
 bool TablePage::InsertTuple(Row &row, Schema *schema, Txn *txn, LockManager *lock_manager, LogManager *log_manager) {
-  uint32_t serialized_size = row.GetSerializedSize(schema);
+  // uint32_t serialized_size = row.GetSerializedSize(schema);
+  // ASSERT(serialized_size > 0, "Can not have empty row.");
+  // if (GetFreeSpaceRemaining() < serialized_size + SIZE_TUPLE) {
+  //   return false;
+  // }
+  // // Try to find a free slot to reuse.
+  // uint32_t i;
+  // for (i = 0; i < GetTupleCount(); i++) {
+  //   // If the slot is empty, i.e. its tuple has size 0,
+  //   if (GetTupleSize(i) == 0) {
+  //     // Then we break out of the loop at index i.
+  //     break;
+  //   }
+  // }
+  // if (i == GetTupleCount() && GetFreeSpaceRemaining() < serialized_size + SIZE_TUPLE) {
+  //   return false;
+  // }
+  // // Otherwise we claim available free space..
+  // SetFreeSpacePointer(GetFreeSpacePointer() - serialized_size);
+  // uint32_t __attribute__((unused)) write_bytes = row.SerializeTo(GetData() + GetFreeSpacePointer(), schema);
+  // ASSERT(write_bytes == serialized_size, "Unexpected behavior in row serialize.");
+
+  // // Set the tuple.
+  // SetTupleOffsetAtSlot(i, GetFreeSpacePointer());
+  // SetTupleSize(i, serialized_size);
+  // // Set rid
+  // row.SetRowId(RowId(GetTablePageId(), i));
+  // if (i == GetTupleCount()) {
+  //   SetTupleCount(GetTupleCount() + 1);
+  // }
+  // return true;
+    uint32_t serialized_size = row.GetSerializedSize(schema);
   ASSERT(serialized_size > 0, "Can not have empty row.");
   if (GetFreeSpaceRemaining() < serialized_size + SIZE_TUPLE) {
     return false;
@@ -30,14 +61,16 @@ bool TablePage::InsertTuple(Row &row, Schema *schema, Txn *txn, LockManager *loc
   }
   // Otherwise we claim available free space..
   SetFreeSpacePointer(GetFreeSpacePointer() - serialized_size);
+  //std::cout<<"a"<<std::endl;
   uint32_t __attribute__((unused)) write_bytes = row.SerializeTo(GetData() + GetFreeSpacePointer(), schema);
   ASSERT(write_bytes == serialized_size, "Unexpected behavior in row serialize.");
-
+ //std::cout<<"b"<<std::endl;
   // Set the tuple.
   SetTupleOffsetAtSlot(i, GetFreeSpacePointer());
   SetTupleSize(i, serialized_size);
   // Set rid
   row.SetRowId(RowId(GetTablePageId(), i));
+  //std::cout<<"c"<<std::endl;
   if (i == GetTupleCount()) {
     SetTupleCount(GetTupleCount() + 1);
   }
@@ -189,3 +222,5 @@ bool TablePage::GetNextTupleRid(const RowId &cur_rid, RowId *next_rid) {
   next_rid->Set(INVALID_PAGE_ID, 0);
   return false;
 }
+
+

@@ -25,7 +25,9 @@ TEST(TableHeapTest, TableHeapSampleTest) {
   // create rows
   std::unordered_map<int64_t, Fields *> row_values;
   uint32_t size = 0;
+  //std::cout<<"111"<<std::endl;
   TableHeap *table_heap = TableHeap::Create(bpm_, schema.get(), nullptr, nullptr, nullptr);
+  // std::cout<<"222"<<std::endl;
   for (int i = 0; i < row_nums; i++) {
     int32_t len = RandomUtils::RandomInt(0, 64);
     char *characters = new char[len];
@@ -34,9 +36,11 @@ TEST(TableHeapTest, TableHeapSampleTest) {
         new Fields{Field(TypeId::kTypeInt, i), Field(TypeId::kTypeChar, const_cast<char *>(characters), len, true),
                    Field(TypeId::kTypeFloat, RandomUtils::RandomFloat(-999.f, 999.f))};
     Row row(*fields);
+    //std::cout<<"333"<<std::endl;
     ASSERT_TRUE(table_heap->InsertTuple(row, nullptr));
+    //std::cout<<"444 insert"<<std::endl;
     if (row_values.find(row.GetRowId().Get()) != row_values.end()) {
-      std::cout << row.GetRowId().Get() << std::endl;
+    //  std::cout << row.GetRowId().Get() << std::endl;
       ASSERT_TRUE(false);
     } else {
       row_values.emplace(row.GetRowId().Get(), fields);
@@ -47,13 +51,18 @@ TEST(TableHeapTest, TableHeapSampleTest) {
 
   ASSERT_EQ(row_nums, row_values.size());
   ASSERT_EQ(row_nums, size);
+  //std::cout<<"555"<<std::endl;
   for (auto row_kv : row_values) {
     size--;
     Row row(RowId(row_kv.first));
     table_heap->GetTuple(&row, nullptr);
+  //  std::cout<<"666"<<std::endl;
     ASSERT_EQ(schema.get()->GetColumnCount(), row.GetFields().size());
+    //std::cout<<"777"<<std::endl;
     for (size_t j = 0; j < schema.get()->GetColumnCount(); j++) {
+   //   std::cout<<"888"<<std::endl;
       ASSERT_EQ(CmpBool::kTrue, row.GetField(j)->CompareEquals(row_kv.second->at(j)));
+    //  std::cout<<"999"<<std::endl;
     }
     // free spaces
     delete row_kv.second;

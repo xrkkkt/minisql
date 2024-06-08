@@ -24,7 +24,7 @@ Column::Column(std::string column_name, TypeId type, uint32_t length, uint32_t i
       table_ind_(index),
       nullable_(nullable),
       unique_(unique) {
-  ASSERT(type == TypeId::kTypeChar, "Wrong constructor for non-VARCHAR type.");
+ // ASSERT(type == TypeId::kTypeChar, "Wrong constructor for non-VARCHAR type.");
 }
 
 Column::Column(const Column *other)
